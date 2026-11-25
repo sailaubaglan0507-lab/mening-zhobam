@@ -1,0 +1,2446 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ақпараттық жүйелер негіздері — Интеллектуалды оқу құралы</title>
+  <style>
+    :root {
+      --bg: #050811;
+      --bg-elevated: #0d1424;
+      --surface: rgba(15, 23, 42, 0.8);
+      --surface-solid: #111b33;
+      --surface-alt: rgba(30, 41, 69, 0.72);
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-dark: #0284c7;
+      --accent: #22d3ee;
+      --purple: #a855f7;
+      --pink: #ec4899;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --border: rgba(148, 163, 184, 0.2);
+      --radius: 18px;
+      --shadow: 0 20px 48px rgba(0, 0, 0, 0.52);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(circle at 12% 14%, rgba(56, 189, 248, 0.16), transparent 38%),
+        radial-gradient(circle at 86% 16%, rgba(168, 85, 247, 0.17), transparent 40%),
+        radial-gradient(circle at 72% 84%, rgba(34, 211, 238, 0.12), transparent 42%);
+      color: var(--text);
+      line-height: 1.65;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Тышқанның визуализациясы */
+    .cursor-ring {
+      position: fixed;
+      width: 34px;
+      height: 34px;
+      border: 1.5px solid rgba(56, 189, 248, 0.75);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: width 0.18s ease, height 0.18s ease, border-color 0.2s ease, background 0.2s ease;
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.28);
+    }
+    .cursor-dot {
+      position: fixed;
+      width: 7px;
+      height: 7px;
+      background: #38bdf8;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 12px #22d3ee;
+    }
+    .cursor-ring.active-click {
+      width: 48px;
+      height: 48px;
+      border-color: #c084fc;
+      background: rgba(168, 85, 247, 0.14);
+    }
+    @media (hover: none), (max-width: 768px) {
+      .cursor-ring, .cursor-dot { display: none !important; }
+    }
+
+    #network-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .aurora-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(95px);
+      pointer-events: none;
+      z-index: 0;
+      animation: floatOrb 13s ease-in-out infinite alternate;
+    }
+    .orb-1 {
+      width: 360px; height: 360px;
+      background: rgba(56, 189, 248, 0.14);
+      top: -90px; left: -90px;
+    }
+    .orb-2 {
+      width: 400px; height: 400px;
+      background: rgba(168, 85, 247, 0.14);
+      bottom: -110px; right: -90px;
+      animation-delay: -5s;
+    }
+
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(34px, 24px) scale(1.1); }
+    }
+
+    header {
+      position: relative;
+      z-index: 2;
+      background:
+        radial-gradient(circle at 85% 20%, rgba(56, 189, 248, 0.25), transparent 45%),
+        radial-gradient(circle at 18% 85%, rgba(168, 85, 247, 0.24), transparent 45%),
+        linear-gradient(135deg, rgba(8, 13, 28, 0.94) 0%, rgba(19, 31, 66, 0.92) 55%, rgba(12, 74, 110, 0.9) 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 24px 20px 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 16px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .topbar-account {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .account-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+    }
+
+    .account-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 12px var(--success);
+      animation: pulseDot 2s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.35); opacity: 0.7; }
+    }
+
+    .hero-top {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #bae6fd;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-size: clamp(24px, 4vw, 37px);
+      line-height: 1.2;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, #ffffff, #7dd3fc, #e9d5ff, #67e8f9);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shimmerText 7s linear infinite;
+    }
+
+    @keyframes shimmerText {
+      0% { background-position: 0% center; }
+      100% { background-position: 200% center; }
+    }
+
+    .hero-sub { color: #cbd5e1; max-width: 800px; font-size: 15px; }
+
+    .hero-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .progress-box {
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 12px 16px;
+      border-radius: 12px;
+      min-width: 230px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 9px;
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #38bdf8, #a855f7, #22c55e);
+      transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    nav.modules-nav {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: 0.22s;
+    }
+
+    .nav-btn:hover { background: rgba(255, 255, 255, 0.16); transform: translateY(-2px); }
+    .nav-btn.active {
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      color: #061021;
+      border-color: transparent;
+      box-shadow: 0 8px 22px rgba(56, 189, 248, 0.38);
+    }
+
+    main { padding: 28px 0 60px; }
+
+    .module { display: none; }
+    .module.active { display: block; animation: modEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+
+    @keyframes modEnter {
+      from { opacity: 0; transform: translateY(14px) scale(0.99); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .card {
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      transition: transform 0.22s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .card:hover {
+      border-color: rgba(125, 211, 252, 0.42);
+      box-shadow: 0 24px 54px rgba(2, 132, 199, 0.16);
+    }
+
+    h2 { font-size: 24px; margin-bottom: 12px; color: #f8fafc; }
+    h3 { font-size: 18px; margin-bottom: 10px; color: #7dd3fc; }
+    p { margin-bottom: 12px; color: #e2e8f0; }
+    .muted { color: var(--muted); font-size: 14px; }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+
+    .info-box {
+      background: rgba(56, 189, 248, 0.08);
+      border-left: 4px solid var(--primary);
+      border-top: 1px solid rgba(56, 189, 248, 0.18);
+      border-right: 1px solid rgba(56, 189, 248, 0.18);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.18);
+      padding: 14px 16px;
+      border-radius: 12px;
+      margin: 12px 0;
+    }
+
+    .btn, a.btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      margin-right: 8px;
+      margin-top: 6px;
+      text-decoration: none;
+    }
+
+    .btn:hover, a.btn:hover { filter: brightness(1.14); transform: translateY(-2px); }
+    .btn.secondary { background: rgba(148, 163, 184, 0.18); color: #f1f5f9; border: 1px solid rgba(148, 163, 184, 0.25); }
+    .btn.secondary:hover { background: rgba(148, 163, 184, 0.28); }
+    .btn.success { background: linear-gradient(135deg, #16a34a, #059669); }
+    .btn.purple { background: linear-gradient(135deg, #9333ea, #7e22ce); }
+    .btn.danger-btn { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+    .btn.small { padding: 7px 12px; font-size: 13px; margin-top: 0; }
+
+    /* YouTube бейне блок */
+    .yt-embed-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: #020617;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+      margin-top: 12px;
+    }
+    .yt-embed-wrap iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    /* Аккаунт модалі / панелі */
+    .account-drawer {
+      display: none;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, rgba(17, 27, 51, 0.96), rgba(30, 27, 75, 0.92));
+      border: 1px solid rgba(168, 85, 247, 0.45);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    .account-drawer.open { display: block; animation: modEnter 0.25s ease; }
+
+    .account-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .saved-accounts-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .acc-chip {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(125, 211, 252, 0.35);
+      color: #e0f2fe;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .acc-chip:hover { background: rgba(56, 189, 248, 0.22); }
+
+    /* Анимациялық бейне-симулятор */
+    .video-sim-stage {
+      position: relative;
+      background: linear-gradient(135deg, #070d1d, #0f1e3d 55%, #191338 100%);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 14px;
+      overflow: hidden;
+    }
+
+    .video-sim-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(239, 68, 68, 0.18);
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      color: #fecaca;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .sim-track {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    .sim-node {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .sim-node.active-node {
+      border-color: #38bdf8;
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 0 24px rgba(56, 189, 248, 0.35);
+      background: rgba(14, 116, 144, 0.28);
+    }
+
+    .sim-caption-bar {
+      background: rgba(2, 6, 23, 0.72);
+      border-left: 3px solid var(--accent);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #e0f2fe;
+    }
+
+    /* Теория, Симулятор және Глоссарий */
+    .topic-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+    .topic-tab {
+      padding: 9px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: #e2e8f0;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: 0.2s;
+    }
+    .topic-tab.active {
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      color: #061021;
+      border-color: transparent;
+    }
+
+    .flow-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin: 14px 0;
+    }
+    .flow-step {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #e0f2fe;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .flow-step:hover { background: rgba(56, 189, 248, 0.24); transform: translateY(-2px); }
+    .flow-step.selected {
+      background: rgba(168, 85, 247, 0.26);
+      border-color: #c084fc;
+      color: #f3e8ff;
+      box-shadow: 0 0 16px rgba(168, 85, 247, 0.3);
+    }
+    .arrow { font-weight: bold; color: var(--accent); }
+
+    .glossary-item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 15px;
+      background: rgba(15, 23, 42, 0.72);
+      transition: 0.2s;
+    }
+    .glossary-item:hover { border-color: rgba(56, 189, 248, 0.55); transform: translateY(-3px); }
+    .glossary-term { font-weight: 700; color: #7dd3fc; margin-bottom: 4px; }
+
+    /* Практика, Конструктор және Тренажер */
+    textarea, input[type="text"], select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      margin-top: 8px;
+      margin-bottom: 10px;
+      background: rgba(15, 23, 42, 0.85);
+      color: #f8fafc;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+
+    .hidden-panel {
+      display: none;
+      margin-top: 10px;
+      padding: 14px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border);
+    }
+
+    .trainer-case {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: rgba(15, 23, 42, 0.72);
+    }
+    .type-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .type-btn {
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(30, 41, 69, 0.85);
+      color: #e2e8f0;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .type-btn:hover { background: rgba(56, 189, 248, 0.22); }
+    .type-btn.correct { background: rgba(34, 197, 94, 0.24); border-color: #22c55e; color: #bbf7d0; }
+    .type-btn.wrong { background: rgba(239, 68, 68, 0.24); border-color: #ef4444; color: #fecaca; }
+
+    .builder-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin: 12px 0;
+    }
+    .builder-box {
+      border: 1px dashed rgba(125, 211, 252, 0.45);
+      background: rgba(15, 23, 42, 0.68);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    /* Оқу жоспары чекбокстары */
+    .plan-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+    }
+
+    /* Тест */
+    .question-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      background: rgba(15, 23, 42, 0.72);
+    }
+    .q-title { font-weight: 700; margin-bottom: 10px; color: #f8fafc; }
+    .option-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 6px;
+      color: #e2e8f0;
+    }
+    .option-label:hover { background: rgba(56, 189, 248, 0.12); }
+    .q-feedback {
+      margin-top: 8px;
+      font-size: 13px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    /* ЖИ көмекшісі */
+    .chat-box {
+      height: 320px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      background: rgba(9, 15, 31, 0.82);
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg {
+      max-width: 82%;
+      padding: 11px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      white-space: pre-line;
+      line-height: 1.5;
+    }
+    .msg.bot { background: rgba(56, 189, 248, 0.16); border: 1px solid rgba(56, 189, 248, 0.3); color: #e0f2fe; align-self: flex-start; border-bottom-left-radius: 4px; }
+    .msg.user { background: linear-gradient(135deg, #2563eb, #9333ea); color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .quick-prompts { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .chip {
+      background: rgba(30, 41, 69, 0.85);
+      border: 1px solid var(--border);
+      color: #e2e8f0;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+    .chip:hover { background: rgba(56, 189, 248, 0.22); border-color: #7dd3fc; }
+
+    /* Командалық палитра (Ctrl+K) */
+    .cmd-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.78);
+      backdrop-filter: blur(6px);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .cmd-modal.open { display: flex; }
+    .cmd-box {
+      width: 100%;
+      max-width: 520px;
+      background: #0f172a;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Бағалау және Сертификат */
+    .score-banner {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.14), rgba(34, 197, 94, 0.12));
+      border: 1px solid rgba(125, 211, 252, 0.35);
+      padding: 20px;
+      border-radius: 14px;
+      margin-bottom: 18px;
+    }
+    .score-big { font-size: 40px; font-weight: 800; color: #38bdf8; }
+
+    .rec-list { margin: 10px 0 16px 20px; color: #e2e8f0; }
+    .rec-list li { margin-bottom: 6px; }
+
+    .certificate-box {
+      margin-top: 20px;
+      border: 3px double #38bdf8;
+      background: linear-gradient(180deg, #0f172a 0%, #172554 100%);
+      border-radius: 14px;
+      padding: 26px;
+      text-align: center;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+    }
+    .cert-title { font-size: 22px; font-weight: 800; color: #7dd3fc; margin-bottom: 8px; letter-spacing: 1px; }
+    .cert-name { font-size: 25px; font-weight: 700; color: #ffffff; margin: 10px 0; border-bottom: 1px solid rgba(148, 163, 184, 0.4); display: inline-block; padding: 0 18px 4px; }
+
+    footer {
+      text-align: center;
+      padding: 22px 16px;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid var(--border);
+      background: rgba(9, 15, 31, 0.92);
+      position: relative;
+      z-index: 2;
+    }
+
+    @media print {
+      header, nav, .btn, a.btn, .no-print, footer, .aurora-orb, .account-drawer, #network-canvas, .cmd-modal, .cursor-ring, .cursor-dot { display: none !important; }
+      body { background: #fff !important; color: #0f172a !important; }
+      .card { box-shadow: none; border: none; background: #fff !important; color: #0f172a !important; }
+      .certificate-box { background: #fffef7 !important; color: #0f172a !important; border-color: #1e3a8a !important; }
+      .cert-title { color: #1e3a8a !important; }
+      .cert-name { color: #0f172a !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="cursor-ring" id="cursor-ring"></div>
+<div class="cursor-dot" id="cursor-dot"></div>
+<canvas id="network-canvas"></canvas>
+<div class="aurora-orb orb-1"></div>
+<div class="aurora-orb orb-2"></div>
+
+<header>
+  <div class="container">
+    <div class="topbar-account">
+      <div class="account-pill">
+        <span class="account-dot"></span>
+        <span>Аккаунт: <strong id="active-account-label">Қонақ профилі</strong></span>
+        <span class="muted" id="active-account-group" style="font-size:12px;"></span>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn small secondary" onclick="toggleAccountDrawer()">👤 Аккаунт / Кіру</button>
+        <button class="btn small secondary" onclick="openCmdModal()">⚡ Пәрмендер (Ctrl+K)</button>
+        <a class="btn small danger-btn" href="https://www.youtube.com/@almatypolytechedukz" target="_blank" rel="noopener">▶ @almatypolytechedukz</a>
+        <button class="btn small purple" onclick="openModule('mod-6')">🚀 Деплой & Басқа пәндер</button>
+      </div>
+    </div>
+
+    <div id="account-drawer" class="account-drawer">
+      <h3>Жеке аккаунт және прогресті сақтау</h3>
+      <p class="muted">Аты-жөніңізді немесе логиніңізді енгізіп сақтаңыз — қайта кіргенде барлық ұпай, тест нәтижесі, конспектілер және сертификат осы аккаунтқа бекітіледі.</p>
+      <div class="account-grid">
+        <div>
+          <label class="muted"><strong>Логин / Профиль аты:</strong></label>
+          <input type="text" id="acc-login-input" placeholder="Мысалы: alikhan_ais" />
+        </div>
+        <div>
+          <label class="muted"><strong>Оқушының толық аты-жөні (сертификат үшін):</strong></label>
+          <input type="text" id="acc-fullname-input" placeholder="Мысалы: Әлихан Сейітов" />
+        </div>
+        <div>
+          <label class="muted"><strong>Курс / Топ:</strong></label>
+          <input type="text" id="acc-group-input" placeholder="Мысалы: АЖ-204" />
+        </div>
+      </div>
+      <button class="btn success" onclick="saveAndSwitchAccount()">Аккаунтты сақтау және қосу</button>
+      <button class="btn secondary" onclick="toggleAccountDrawer()">Жабу</button>
+
+      <div style="margin-top:12px;">
+        <span class="muted"><strong>Сақталған аккаунттар:</strong></span>
+        <div id="saved-accounts-list" class="saved-accounts-list"></div>
+      </div>
+    </div>
+
+    <div class="hero-top">
+      <div>
+        <span class="badge">🌌 Интеллектуалды электронды оқу құралы • 6 модуль • YouTube & Дауыс & Курсор-FX</span>
+        <h1>Ақпараттық жүйелер негіздері</h1>
+        <p class="hero-sub">
+          АЖ құрылымы, ақпарат айналымы, SDLC жобалау, деректер мен қауіпсіздік, YouTube бейне-сабақ (@almatypolytechedukz),
+          дауыстық түсіндірме, ТЗ генераторы, сәйкестендіру ойыны, конструктор мен тренажер, 10 сұрақтық тест және ЖИ көмекшісі.
+        </p>
+      </div>
+
+      <div class="hero-meta-row">
+        <div class="progress-box">
+          <div class="progress-label">
+            <span>Оқу прогресі</span>
+            <span id="progress-text">0%</span>
+          </div>
+          <div class="progress-track">
+            <div id="progress-fill" class="progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="progress-box" style="min-width: 155px;">
+          <div class="progress-label">
+            <span>Оқу уақыты</span>
+            <span id="session-timer">00:00</span>
+          </div>
+          <div class="muted" style="color:#bae6fd; font-size:12px;">Белсенді сессия</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="modules-nav" aria-label="Модульдер навигациясы">
+      <button class="nav-btn active" data-target="mod-1">1. Басты бет</button>
+      <button class="nav-btn" data-target="mod-2">2. Теория, Бейне & Глоссарий</button>
+      <button class="nav-btn" data-target="mod-3">3. Практика, Конструктор & Ойындар</button>
+      <button class="nav-btn" data-target="mod-4">4. Интеллектуалды тест</button>
+      <button class="nav-btn" data-target="mod-5">5. ЖИ көмекшісі</button>
+      <button class="nav-btn" data-target="mod-6">6. Бағалау, ТЗ & Сертификат</button>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- 1-МОДУЛЬ: БАСТЫ БЕТ -->
+  <section id="mod-1" class="module active">
+    <div class="card tilt-card">
+      <h2>1-модуль. Басты бет</h2>
+      <p>
+        <strong>Оқу құралының мақсаты:</strong> Білім алушыларға ақпараттық жүйелердің (АЖ)
+        теориялық негіздерін өмірлік мысалдар мен бейнематериалдар арқылы меңгерту, жүйелік талдау, деректер мен архитектураны
+        жобалау және жүйе түрлерін ажырату дағдыларын қалыптастыру, сондай-ақ тест пен ЖИ көмекшісі арқылы білімді бағалау.
+      </p>
+      <div class="info-box">
+        <strong>Автор және бейнеарна туралы ақпарат:</strong> Оқу құралы «Ақпараттық жүйелер негіздері» пәні
+        бойынша практикалық жоба ретінде дайындалды. Бейнематериалдар үшін
+        <a href="https://www.youtube.com/@almatypolytechedukz" target="_blank" rel="noopener" style="color:#7dd3fc; font-weight:700;">@almatypolytechedukz</a>
+        арнасы және арнайы сабақ бейнесі біріктірілген.
+      </div>
+
+      <div class="flow-row">
+        <div class="flow-step">5 компонент</div>
+        <span class="arrow">→</span>
+        <div class="flow-step">Бейне & Ақпарат айналымы</div>
+        <span class="arrow">→</span>
+        <div class="flow-step">SDLC & ТЗ Генератор</div>
+        <span class="arrow">→</span>
+        <div class="flow-step">Тренажер & Ойындар</div>
+        <span class="arrow">→</span>
+        <div class="flow-step">Тест & Талдау</div>
+        <span class="arrow">→</span>
+        <div class="flow-step">Сертификат</div>
+      </div>
+
+      <button class="btn" onclick="openModule('mod-2')">Теория мен бейнені бастау</button>
+      <button class="btn secondary" onclick="openModule('mod-3')">Практика мен тренажер</button>
+      <button class="btn secondary" onclick="openModule('mod-4')">Тест тапсыру</button>
+      <button class="btn purple" onclick="openModule('mod-5')">ЖИ көмекшісін ашу</button>
+      <button class="btn success" onclick="speakText(document.querySelector('#mod-1 p').textContent)">🔊 Мақсатын тыңдау</button>
+    </div>
+
+    <div class="grid-3">
+      <div class="card tilt-card">
+        <h3>Кеңейтілген теория, бейне және глоссарий</h3>
+        <p class="muted">4 толық тақырып, YouTube бейне-сабақ, дауыстық оқу, SDLC симуляторы және терминдер сөздігі.</p>
+        <button class="btn secondary" onclick="openModule('mod-2')">2-модульді ашу</button>
+      </div>
+      <div class="card tilt-card">
+        <h3>Тренажер, конструктор, ойындар және кейстер</h3>
+        <p class="muted">TPS/MIS/DSS/ES ойыны, сәйкестендіру ойыны, архитектура конструкторы, қауіпсіздік және 3 кейс.</p>
+        <button class="btn secondary" onclick="openModule('mod-3')">3-модульді ашу</button>
+      </div>
+      <div class="card tilt-card">
+        <h3>Аккаунт, ТЗ генераторы, талдау және сертификат</h3>
+        <p class="muted">Нәтиже аккаунтта сақталады, ТЗ жасалады, қателер талданады, сертификат және деплой гиді беріледі.</p>
+        <button class="btn secondary" onclick="openModule('mod-6')">6-модульді ашу</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2-МОДУЛЬ: ТЕОРИЯЛЫҚ МАТЕРИАЛ, YOUTUBE БЕЙНЕ ЖӘНЕ ГЛОССАРИЙ -->
+  <section id="mod-2" class="module">
+    <div class="card">
+      <h2>2-модуль. Теориялық материал (Кеңейтілген тақырыптар)</h2>
+      <p class="muted">Төмендегі 4 негізгі тақырыпты таңдап, мазмұнымен, схемасымен, дауыстық түсіндірмемен және SDLC симуляторымен танысыңыз.</p>
+
+      <div class="topic-tabs">
+        <button class="topic-tab active" onclick="showTopic(1, this)">1. АЖ түсінігі және түрлері</button>
+        <button class="topic-tab" onclick="showTopic(2, this)">2. Ақпараттың өмірлік циклі</button>
+        <button class="topic-tab" onclick="showTopic(3, this)">3. АЖ жобалау кезеңдері (SDLC)</button>
+        <button class="topic-tab" onclick="showTopic(4, this)">4. Деректер, интеграция және қауіпсіздік</button>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <button class="btn small success" onclick="speakActiveTopic()">🔊 Тақырыпты дауыстап түсіндіру</button>
+        <button class="btn small secondary" onclick="stopSpeech()">⏹ Дыбысты тоқтату</button>
+      </div>
+
+      <div id="topic-1" class="topic-content">
+        <h3>1-тақырып: Ақпараттық жүйе (АЖ) түсінігі, құрамдас бөліктері және түрлері</h3>
+        <p>
+          <strong>Ақпараттық жүйе</strong> — деректерді жинауға, сақтауға, өңдеуге және шешім қабылдауға
+          қажетті ақпарат түрінде ұсынуға арналған өзара байланысты элементтер жиынтығы.
+        </p>
+        <div class="flow-row">
+          <div class="flow-step">1. Деректер</div>
+          <div class="flow-step">2. Бағдарламалық жасақтама</div>
+          <div class="flow-step">3. Аппараттық құралдар</div>
+          <div class="flow-step">4. Адамдар</div>
+          <div class="flow-step">5. Процестер</div>
+        </div>
+        <div class="info-box">
+          <strong>Негізгі түрлері:</strong><br/>
+          - <strong>TPS</strong> — күнделікті операцияларды тіркеу (касса, банк транзакциясы, брондау).<br/>
+          - <strong>MIS</strong> — басшылыққа тұрақты есептер мен жиынтық көрсеткіштер беру.<br/>
+          - <strong>DSS</strong> — аналитика, болжам және сценарийлер арқылы шешім қабылдауға көмектесу.<br/>
+          - <strong>ES</strong> — сарапшы білімі мен ережелерге сүйеніп ұсыныс немесе шешім беру.
+        </div>
+      </div>
+
+      <div id="topic-2" class="topic-content" style="display:none;">
+        <h3>2-тақырып: Ақпараттың өмірлік циклі және деректерді ұйымдастыру</h3>
+        <p>
+          <strong>Деректер</strong> — өңделмеген шикі фактілер немесе сандар.
+          <strong>Ақпарат</strong> — контекст пен өңдеу нәтижесінде мағынаға ие болған мәлімет.
+          Сапалы ақпарат <em>дәл, өзекті, толық және түсінікті</em> болуы тиіс.
+        </p>
+        <div class="flow-row">
+          <div class="flow-step">Жинау</div>
+          <span class="arrow">→</span>
+          <div class="flow-step">Өңдеу</div>
+          <span class="arrow">→</span>
+          <div class="flow-step">Сақтау</div>
+          <span class="arrow">→</span>
+          <div class="flow-step">Тасымалдау</div>
+          <span class="arrow">→</span>
+          <div class="flow-step">Талдау / Ұсыну</div>
+          <span class="arrow">→</span>
+          <div class="flow-step">Мұрағат / Жою</div>
+        </div>
+      </div>
+
+      <div id="topic-3" class="topic-content" style="display:none;">
+        <h3>3-тақырып: АЖ жобалау кезеңдері (SDLC) және интерактивті симулятор</h3>
+        <p>Ақпараттық жүйе жүйелі түрде кезең-кезеңімен құрылады. Кезеңді басып, толық сипаттамасын қараңыз:</p>
+        <div class="flow-row" id="sdlc-steps-row">
+          <div class="flow-step selected" onclick="selectSdlcStep(0, this)">1. Талаптарды талдау</div>
+          <span class="arrow">→</span>
+          <div class="flow-step" onclick="selectSdlcStep(1, this)">2. Жобалау</div>
+          <span class="arrow">→</span>
+          <div class="flow-step" onclick="selectSdlcStep(2, this)">3. Әзірлеу</div>
+          <span class="arrow">→</span>
+          <div class="flow-step" onclick="selectSdlcStep(3, this)">4. Тестілеу</div>
+          <span class="arrow">→</span>
+          <div class="flow-step" onclick="selectSdlcStep(4, this)">5. Енгізу және қолдау</div>
+        </div>
+        <div id="sdlc-detail-box" class="info-box"></div>
+      </div>
+
+      <div id="topic-4" class="topic-content" style="display:none;">
+        <h3>4-тақырып: Деректер базасы, API интеграциясы және ақпараттық қауіпсіздік</h3>
+        <p>
+          Заманауи ақпараттық жүйе оқшау тұрмайды: ол <strong>деректер базасында</strong> құрылымдалған
+          мәліметтерді сақтайды, <strong>API</strong> арқылы басқа жүйелермен (төлем шлюзі, хабарлама, ERP)
+          алмасады және <strong>CIA триадасына</strong> (Құпиялылық, Тұтастық, Қолжетімділік) сүйеніп қорғалады.
+        </p>
+        <div class="flow-row">
+          <div class="flow-step">Клиент / Интерфейс</div>
+          <span class="arrow">⇄</span>
+          <div class="flow-step">Бизнес-логика & API</div>
+          <span class="arrow">⇄</span>
+          <div class="flow-step">Деректер базасы (SQL/NoSQL)</div>
+          <span class="arrow">🛡️</span>
+          <div class="flow-step">Рөлдік рұқсат & Резервтік көшірме</div>
+        </div>
+      </div>
+
+      <!-- YouTube бейне және арна -->
+      <div class="card" style="margin-top:16px; background:rgba(9,15,31,0.88);">
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
+          <div>
+            <h3>📺 Бейнематериал (@almatypolytechedukz)</h3>
+            <p class="muted" style="margin-bottom:0;">Бейнені тікелей сайт ішінде көріңіз немесе YouTube арнаға өтіңіз.</p>
+          </div>
+          <div>
+            <a class="btn small danger-btn" href="https://youtu.be/vvq7KSz_GWY?si=zzipAd9xnn7vgwPT" target="_blank" rel="noopener">▶ YouTube-та ашу</a>
+            <a class="btn small secondary" href="https://www.youtube.com/@almatypolytechedukz" target="_blank" rel="noopener">Арна: @almatypolytechedukz</a>
+            <button class="btn small success" onclick="speakText('Бейнематериал Алматы политехникалық білім беру арнасынан алынды. Ақпараттық жүйелердің негізгі қағидаттарын меңгеруге арналған.')">🔊 Бейне кіріспесін тыңдау</button>
+          </div>
+        </div>
+
+        <div class="yt-embed-wrap">
+          <iframe
+            src="https://www.youtube.com/embed/vvq7KSz_GWY"
+            title="Ақпараттық жүйелер бойынша бейнематериал"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen>
+          </iframe>
+        </div>
+
+        <div style="margin-top:14px;">
+          <label class="muted"><strong>Бейне бойынша жеке конспектіңіз (аккаунтта сақталады):</strong></label>
+          <textarea id="video-notes-input" placeholder="Бейнеден түйген негізгі ойларды немесе формула/терминдерді осында жазыңыз..."></textarea>
+          <button class="btn small success" onclick="saveVideoNotes()">💾 Конспектіні сақтау</button>
+          <span id="video-notes-status" class="muted" style="margin-left:8px;"></span>
+        </div>
+      </div>
+
+      <!-- Кіріктірілген анимациялық бейне-симулятор -->
+      <div class="video-sim-stage">
+        <div class="video-sim-header">
+          <div>
+            <span class="live-pill">🎬 АНИМАЦИЯЛЫҚ БЕЙНЕ-СХЕМА</span>
+            <strong style="margin-left:8px;">Ақпараттық жүйедегі ақпарат ағынының визуалды көрсетілімі</strong>
+          </div>
+          <div>
+            <button class="btn small success" id="video-sim-btn" onclick="toggleVideoSim()">▶ Бейне-анимацияны қосу</button>
+            <button class="btn small secondary" onclick="playPulseTone()">🎵 Дыбыс сигналы</button>
+          </div>
+        </div>
+
+        <div class="sim-track" id="sim-nodes-track">
+          <div class="sim-node" data-step="0">
+            <div>👤 <strong>1. Қолданушы</strong></div>
+            <div class="muted" style="font-size:12px;">Сұраныс / дерек енгізу</div>
+          </div>
+          <div class="sim-node" data-step="1">
+            <div>⚙️ <strong>2. Қолданба & API</strong></div>
+            <div class="muted" style="font-size:12px;">Ережелерді тексеру</div>
+          </div>
+          <div class="sim-node" data-step="2">
+            <div>🗄️ <strong>3. Деректер базасы</strong></div>
+            <div class="muted" style="font-size:12px;">Сақтау және іздеу</div>
+          </div>
+          <div class="sim-node" data-step="3">
+            <div>📊 <strong>4. Талдау & Нәтиже</strong></div>
+            <div class="muted" style="font-size:12px;">Есеп / шешім / экран</div>
+          </div>
+        </div>
+
+        <div class="sim-caption-bar" id="sim-caption">
+          «Бейне-анимацияны қосу» батырмасын басыңыз — жүйе ішіндегі деректер ағыны қадам-қадаммен жанып көрсетіледі.
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Терминдер сөздігі (Глоссарий)</h3>
+      <input type="text" id="glossary-search" placeholder="Термин немесе кілт сөз бойынша іздеу (мысалы: TPS, SDLC, API, CIA)..." oninput="renderGlossary()" />
+      <div id="glossary-list" class="grid-3"></div>
+    </div>
+  </section>
+
+  <!-- 3-МОДУЛЬ: ПРАКТИКА, КОНСТРУКТОР, ҚАУІПСІЗДІК, СӘЙКЕСТЕНДІРУ ЖӘНЕ ТРЕНАЖЕР -->
+  <section id="mod-3" class="module">
+    <div class="card">
+      <h2>3-модуль. Интерактивті тренажер: АЖ түрлерін анықтау</h2>
+      <p class="muted">Әр жағдайға сәйкес келетін жүйе түрін таңдаңыз.</p>
+      <div id="trainer-container"></div>
+    </div>
+
+    <div class="card">
+      <h2>Жаңа ойын: Терминдер мен анықтамаларды сәйкестендіру</h2>
+      <p class="muted">Әр терминге дұрыс анықтамасын таңдап, «Сәйкестікті тексеру» батырмасын басыңыз.</p>
+      <div id="matching-game-container"></div>
+      <button class="btn success" onclick="checkMatchingGame()">Сәйкестікті тексеру</button>
+      <div id="matching-feedback" class="hidden-panel"></div>
+    </div>
+
+    <div class="card">
+      <h2>Қосымша мүмкіндік: АЖ архитектурасын құрастырушы</h2>
+      <p class="muted">Дайын жоба сценарийін таңдап, оған қажетті АЖ түрі мен негізгі құрамдас бөліктерін жинақтап тексеріңіз.</p>
+
+      <label for="scenario-select" class="muted"><strong>Жоба сценарийі:</strong></label>
+      <select id="scenario-select" onchange="resetBuilderFeedback()">
+        <option value="clinic">1. Емханада дәрігер қабылдауына онлайн жазылу және төлем жүйесі</option>
+        <option value="retail">2. Желілік дүкендердің маусымдық сұранысты болжау және тауар қорларын басқару жүйесі</option>
+        <option value="diag">3. Компьютерлік желідегі ақауларды симптомдар бойынша анықтайтын кеңесші жүйе</option>
+      </select>
+
+      <div class="builder-grid">
+        <div class="builder-box">
+          <strong>Жүйе түрін таңдаңыз:</strong><br/>
+          <select id="builder-type">
+            <option value="">-- Таңдаңыз --</option>
+            <option value="TPS">TPS (Транзакциялық жүйе)</option>
+            <option value="DSS">DSS (Шешім қабылдауды қолдау)</option>
+            <option value="ES">ES (Сарапшылық жүйе)</option>
+          </select>
+        </div>
+        <div class="builder-box">
+          <strong>Негізгі деректер:</strong><br/>
+          <input type="text" id="builder-data" placeholder="Мысалы: кесте, пациент, төлем..." />
+        </div>
+        <div class="builder-box">
+          <strong>Күтілетін нәтиже (ақпарат):</strong><br/>
+          <input type="text" id="builder-out" placeholder="Мысалы: талон, есеп, ұсыныс..." />
+        </div>
+      </div>
+
+      <button class="btn" onclick="checkBuilder()">Архитектураны тексеру</button>
+      <div id="builder-result" class="hidden-panel"></div>
+    </div>
+
+    <div class="card">
+      <h2>Жаңа интерактивті ойын: АЖ осалдықтары мен қорғанысы</h2>
+      <p class="muted">Нақты жағдайда қандай қауіпсіздік шарасы ең дұрыс екенін таңдаңыз.</p>
+      <div class="trainer-case">
+        <div><strong>Сценарий:</strong> Деректер базасындағы клиенттердің құпия деректері мен төлем жазбалары бір серверде сақталады, бірақ резервтік көшірмесі жоқ. Қандай шешім қажет?</div>
+        <div class="type-btns">
+          <button class="type-btn" onclick="checkSecChoice(this, false)">Тек түсін өзгерту</button>
+          <button class="type-btn" onclick="checkSecChoice(this, true)">Шифрлау + рөлдік рұқсат + автоматты резервтік көшірме (Backup)</button>
+          <button class="type-btn" onclick="checkSecChoice(this, false)">Логтарды өшіріп тастау</button>
+        </div>
+        <div id="sec-feedback" class="muted" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Практикалық тапсырмалар (3 кейс)</h2>
+      <p class="muted">Жауабыңызды жазыңыз, қажет болса «Кеңес» алыңыз, «Эталондық шешіммен» салыстырыңыз және орындалғанын белгілеңіз.</p>
+
+      <div class="question-card">
+        <h3>1-тапсырма (Базалық): Кітапхана немесе фитнес-орталықтың брондау жүйесі</h3>
+        <p>Осы жүйедегі <strong>деректер</strong>, <strong>бағдарламалық жасақтама</strong>, <strong>адамдар</strong> және <strong>процестер</strong> қандай рөл атқаратынын жазыңыз.</p>
+        <textarea id="p-ans-1" placeholder="Жауабыңызды осында жазыңыз..."></textarea>
+        <button class="btn secondary" onclick="toggleBox('p-hint-1')">Кеңес</button>
+        <button class="btn" onclick="toggleBox('p-sol-1')">Эталондық шешім</button>
+        <button class="btn success" onclick="markPracticeDone(1)">Орындалды деп белгілеу</button>
+        <div id="p-hint-1" class="hidden-panel">
+          <strong>Кеңес:</strong> Клиент, әкімші, кесте/абонемент, қосымша/ДБ және брондау ережесін бөлек атап көрсетіңіз.
+        </div>
+        <div id="p-sol-1" class="hidden-panel">
+          <strong>Эталондық шешім:</strong> Деректер — клиент, кесте, абонемент/кітап мәртебесі; БЖ — интерфейс, ДБ, хабарлама модулі; Адамдар — қолданушы, әкімші, әкімшілеуші; Процестер — бос орынды тексеру, растау, бас тарту ережесі.
+        </div>
+        <div id="p-status-1" class="muted" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="question-card">
+        <h3>2-тапсырма (Практикалық): Онлайн-тапсырыс тізбегі</h3>
+        <p>«Тапсырыс беру → Төлемді тексеру → Қоймаға хабарлау → Жеткізу» процесінің кірісін, өңдеу ережесін және шығысын сипаттаңыз.</p>
+        <textarea id="p-ans-2" placeholder="Кіріс, өңдеу және шығыс бөліктерін жазыңыз..."></textarea>
+        <button class="btn secondary" onclick="toggleBox('p-hint-2')">Кеңес</button>
+        <button class="btn" onclick="toggleBox('p-sol-2')">Эталондық шешім</button>
+        <button class="btn success" onclick="markPracticeDone(2)">Орындалды деп белгілеу</button>
+        <div id="p-hint-2" class="hidden-panel">
+          <strong>Кеңес:</strong> Төлем өтпесе немесе тауар жетпесе жүйе қалай әрекет ететінін көрсетіңіз.
+        </div>
+        <div id="p-sol-2" class="hidden-panel">
+          <strong>Эталондық шешім:</strong> Кіріс — тауар ID, саны, мекенжай, төлем мәртебесі; Өңдеу — төлем расталса және қор бар болса, қорды азайту және жеткізуге беру; Шығыс — чек, қойма/курьер тапсырмасы, хабарлама.
+        </div>
+        <div id="p-status-2" class="muted" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="question-card">
+        <h3>3-тапсырма (Талдау): Басшылыққа арналған талдау жүйесі</h3>
+        <p>Компания басшысы ай сайынғы сатылым динамикасын, өтімді тауарларды және болжамды салыстырып шешім қабылдағысы келеді. Қандай АЖ түрі тиімді және неге?</p>
+        <textarea id="p-ans-3" placeholder="Жүйе түрін және негіздемесін жазыңыз..."></textarea>
+        <button class="btn secondary" onclick="toggleBox('p-hint-3')">Кеңес</button>
+        <button class="btn" onclick="toggleBox('p-sol-3')">Эталондық шешім</button>
+        <button class="btn success" onclick="markPracticeDone(3)">Орындалды деп белгілеу</button>
+        <div id="p-hint-3" class="hidden-panel">
+          <strong>Кеңес:</strong> Транзакцияны тіркейтін жүйе мен шешім қабылдауға көмектесетін аналитикалық жүйені салыстырыңыз.
+        </div>
+        <div id="p-sol-3" class="hidden-panel">
+          <strong>Эталондық шешім:</strong> <strong>DSS</strong> және <strong>MIS</strong> үйлесімі тиімді — ол жинақталған сатылым деректерінен тренд пен болжам жасап, сатып алу мен жоспарлауға көмектеседі.
+        </div>
+        <div id="p-status-3" class="muted" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4-МОДУЛЬ: ИНТЕЛЛЕКТУАЛДЫ ТЕСТ -->
+  <section id="mod-4" class="module">
+    <div class="card">
+      <h2>4-модуль. Интеллектуалды тест (10 сұрақ)</h2>
+      <p class="muted">Барлық сұраққа жауап беріп, «Тесті тексеру және сақтау» батырмасын басыңыз.</p>
+      <div id="quiz-container"></div>
+      <button class="btn success" onclick="gradeQuiz()">Тесті тексеру және сақтау</button>
+      <button class="btn secondary" onclick="resetQuiz()">Қайта өту</button>
+    </div>
+  </section>
+
+  <!-- 5-МОДУЛЬ: ЖИ КӨМЕКШІСІ -->
+  <section id="mod-5" class="module">
+    <div class="card">
+      <h2>5-модуль. ЖИ көмекшісі</h2>
+      <p class="muted">Сұрақ қойыңыз, жылдам үлгіні таңдаңыз, дауыспен тыңдаңыз немесе өзіңізді тексеру үшін сұрақ сұраңыз.</p>
+
+      <div class="quick-prompts">
+        <button class="chip" onclick="sendPreset('АЖ-ның 5 компонентін мысалмен түсіндірші')">АЖ компоненттері</button>
+        <button class="chip" onclick="sendPreset('Деректер мен ақпараттың айырмашылығы неде?')">Деректер vs Ақпарат</button>
+        <button class="chip" onclick="sendPreset('TPS пен DSS жүйесін қалай ажыратамын?')">TPS vs DSS</button>
+        <button class="chip" onclick="sendPreset('SDLC кезеңдерін қысқаша еске түсірші')">SDLC кезеңдері</button>
+        <button class="chip" onclick="sendPreset('Деректер базасы, API және CIA қауіпсіздігін түсіндірші')">ДБ, API & Қауіпсіздік</button>
+        <button class="chip" onclick="sendPreset('Маған қысқа тексеру сұрағын қойшы')">🎯 Тексеру сұрағы</button>
+        <button class="chip" onclick="speakLastBotMessage()">🔊 Соңғы жауапты оқу</button>
+      </div>
+
+      <div id="chat-box" class="chat-box">
+        <div class="msg bot">
+          Сәлем! Мен «Ақпараттық жүйелер негіздері» пәні бойынша ЖИ көмекшісімін.
+          Қай ұғымды мысалмен талдап берейін немесе қысқаша тест сұрағын қойып көрейін бе?
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="chat-input" style="margin:0;" placeholder="Сұрағыңызды жазыңыз..." onkeydown="if(event.key==='Enter') sendMessage()" />
+        <button class="btn" style="margin:0;" onclick="sendMessage()">Жіберу</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6-МОДУЛЬ: БІЛІМДІ БАҒАЛАУ, ТАЛДАУ, ТЗ ГЕНЕРАТОРЫ, ОҚУ ЖОСПАРЫ ЖӘНЕ СЕРТИФИКАТ -->
+  <section id="mod-6" class="module">
+    <div class="card">
+      <h2>6-модуль. Білімді бағалау, талдау және сертификат</h2>
+      <div class="no-print" style="max-width:460px; margin-bottom:14px;">
+        <label for="student-name" class="muted"><strong>Оқушының аты-жөні (сертификат және аккаунт үшін):</strong></label>
+        <input type="text" id="student-name" placeholder="Мысалы: Әлихан Сейітов" oninput="saveStudentName()" />
+        <button class="btn secondary" onclick="clearSavedProgress()">Нәтижелерді тазалау</button>
+      </div>
+      <div id="analysis-content"></div>
+    </div>
+
+    <div class="card no-print">
+      <h2>Жаңа мүмкіндік: Өз ақпараттық жүйеңнің ТЗ (Техникалық тапсырма) генераторы</h2>
+      <p class="muted">Курстық немесе практикалық жобаңызға арналған қысқаша техникалық паспорт құрастырыңыз.</p>
+      <div class="builder-grid">
+        <div class="builder-box">
+          <strong>Жоба атауы:</strong>
+          <input type="text" id="tz-project-name" placeholder="Мысалы: SmartLibrary АЖ" />
+        </div>
+        <div class="builder-box">
+          <strong>Негізгі жүйе түрі:</strong>
+          <select id="tz-sys-type">
+            <option value="TPS + MIS">TPS + MIS (Операция + Есеп)</option>
+            <option value="DSS">DSS (Аналитика және шешім)</option>
+            <option value="ES">ES (Сарапшылық жүйе)</option>
+          </select>
+        </div>
+        <div class="builder-box">
+          <strong>Деректер базасы & Қауіпсіздік:</strong>
+          <input type="text" id="tz-db-sec" placeholder="Мысалы: PostgreSQL, JWT/RBAC, Backup" />
+        </div>
+      </div>
+      <button class="btn purple" onclick="generateTzSpec()">📄 ТЗ құрастыру</button>
+      <div id="tz-output-box" class="hidden-panel"></div>
+    </div>
+
+    <div class="card no-print">
+      <h2>Жаңа мүмкіндік: Өзіндік оқу жоспары трекері</h2>
+      <p class="muted">Тапсырмаларды орындаған сайын белгілеп отырыңыз — орындалу пайызы автоматты есептеледі.</p>
+      <div id="study-plan-list"></div>
+      <div id="study-plan-summary" class="muted" style="margin-top:8px;"></div>
+    </div>
+
+    <div class="card no-print">
+      <h2>Қосымша мүмкіндіктер: Басқа пәнге бейімдеу және Жариялау гиді</h2>
+      <p class="muted">Жобаны басқа пән тақырыбына бейімдеу немесе GitHub Pages / Replit арқылы интернетке жариялау нұсқаулығын қараңыз.</p>
+
+      <div class="topic-tabs">
+        <button class="topic-tab active" onclick="showExtraTab('python', this)">🐍 Python тақырыбына үлгі</button>
+        <button class="topic-tab" onclick="showExtraTab('sql', this)">🗄️ SQL тақырыбына үлгі</button>
+        <button class="topic-tab" onclick="showExtraTab('deploy', this)">🌐 GitHub Pages & Replit</button>
+      </div>
+
+      <div id="extra-content-box" class="info-box"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ПӘРМЕН ПАЛИТРАСЫ (Ctrl+K) -->
+<div id="cmd-modal" class="cmd-modal" onclick="if(event.target===this) closeCmdModal()">
+  <div class="cmd-box">
+    <h3>⚡ Жылдам навигация және пәрмендер</h3>
+    <p class="muted" style="margin-bottom:12px;">Қажетті бөлімді немесе әрекетті бір басумен ашыңыз:</p>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="btn secondary" onclick="closeCmdModal(); openModule('mod-1');">1-модуль: Басты бет</button>
+      <button class="btn secondary" onclick="closeCmdModal(); openModule('mod-2');">2-модуль: Теория, Бейне, Анимация & Глоссарий</button>
+      <button class="btn secondary" onclick="closeCmdModal(); openModule('mod-3');">3-модуль: Тренажер, Ойындар, Конструктор & Кейстер</button>
+      <button class="btn secondary" onclick="closeCmdModal(); openModule('mod-4');">4-модуль: 10 сұрақтық тест</button>
+      <button class="btn secondary" onclick="closeCmdModal(); openModule('mod-5');">5-модуль: ЖИ көмекшісі</button>
+      <button class="btn secondary" onclick="closeCmdModal(); openModule('mod-6');">6-модуль: Талдау, ТЗ & Сертификат</button>
+      <button class="btn success" onclick="closeCmdModal(); toggleAccountDrawer();">👤 Аккаунт панелін ашу</button>
+    </div>
+    <button class="btn" style="margin-top:14px;" onclick="closeCmdModal()">Жабу</button>
+  </div>
+</div>
+
+<footer>
+  Ақпараттық жүйелер негіздері • Интеллектуалды электронды оқу құралы • @almatypolytechedukz • Ctrl+K жылдам мәзір
+</footer>
+
+<script>
+  // 0. ТЫШҚАННЫҢ (КУРСОРДЫҢ) ВИЗУАЛИЗАЦИЯСЫ
+  (function initCursorFx() {
+    const ring = document.getElementById("cursor-ring");
+    const dot = document.getElementById("cursor-dot");
+    if (!ring || !dot) return;
+
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let ringX = mouseX;
+    let ringY = mouseY;
+
+    window.addEventListener("mousemove", (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      dot.style.left = mouseX + "px";
+      dot.style.top = mouseY + "px";
+    });
+
+    window.addEventListener("mousedown", () => ring.classList.add("active-click"));
+    window.addEventListener("mouseup", () => ring.classList.remove("active-click"));
+
+    function follow() {
+      ringX += (mouseX - ringX) * 0.16;
+      ringY += (mouseY - ringY) * 0.16;
+      ring.style.left = ringX + "px";
+      ring.style.top = ringY + "px";
+      requestAnimationFrame(follow);
+    }
+    follow();
+  })();
+
+  // 1. CANVAS ИНТЕРАКТИВТІ ЖЕЛІЛІК ФОН АНИМАЦИЯСЫ
+  (function initNetworkCanvas() {
+    const canvas = document.getElementById("network-canvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+    const mouse = { x: width / 2, y: height / 2, active: false };
+
+    const count = Math.min(72, Math.floor((width * height) / 22000));
+    const nodes = Array.from({ length: count }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.65,
+      vy: (Math.random() - 0.5) * 0.65,
+      r: 1.6 + Math.random() * 2
+    }));
+
+    window.addEventListener("resize", () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      mouse.active = true;
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
+      for (let i = 0; i < nodes.length; i++) {
+        const a = nodes[i];
+        a.x += a.vx;
+        a.y += a.vy;
+        if (a.x < 0 || a.x > width) a.vx *= -1;
+        if (a.y < 0 || a.y > height) a.vy *= -1;
+
+        if (mouse.active) {
+          const dxm = mouse.x - a.x;
+          const dym = mouse.y - a.y;
+          const distM = Math.hypot(dxm, dym);
+          if (distM < 150) {
+            a.x += dxm * 0.004;
+            a.y += dym * 0.004;
+          }
+        }
+
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(125, 211, 252, 0.55)";
+        ctx.fill();
+
+        for (let j = i + 1; j < nodes.length; j++) {
+          const b = nodes[j];
+          const dist = Math.hypot(a.x - b.x, a.y - b.y);
+          if (dist < 135) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(56, 189, 248, ${(1 - dist / 135) * 0.18})`;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
+
+  // 2. 3D TILT АНИМАЦИЯСЫ
+  document.querySelectorAll(".tilt-card").forEach(card => {
+    card.addEventListener("mousemove", (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      card.style.transform = `perspective(900px) rotateX(${(-y * 5).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg) translateY(-3px)`;
+    });
+    card.addEventListener("mouseleave", () => {
+      card.style.transform = "perspective(900px) rotateX(0deg) rotateY(0deg) translateY(0px)";
+    });
+  });
+
+  // 3. ДЫБЫС СИГНАЛЫ ЖӘНЕ ДАУЫСТЫҚ ТҮСІНДІРМЕ (WEB AUDIO + SPEECH SYNTHESIS)
+  function playPulseTone(freq = 587.33, duration = 0.16) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+    } catch (e) {}
+  }
+
+  function speakText(text) {
+    const clean = (text || "").replace(/\s+/g, " ").trim();
+    if (!clean) return;
+    playPulseTone(659.25, 0.12);
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(clean);
+      const voices = window.speechSynthesis.getVoices();
+      const kkVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("kk")) ||
+                      voices.find(v => v.lang && v.lang.toLowerCase().startsWith("ru")) ||
+                      voices[0];
+      if (kkVoice) utter.voice = kkVoice;
+      utter.rate = 0.98;
+      window.speechSynthesis.speak(utter);
+    }
+  }
+
+  function stopSpeech() {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  }
+
+  function speakActiveTopic() {
+    const visible = Array.from(document.querySelectorAll(".topic-content")).find(el => el.style.display !== "none");
+    if (visible) speakText(visible.innerText);
+  }
+
+  function speakLastBotMessage() {
+    const msgs = document.querySelectorAll("#chat-box .msg.bot");
+    if (msgs.length) speakText(msgs[msgs.length - 1].textContent);
+  }
+
+  // 4. АНИМАЦИЯЛЫҚ БЕЙНЕ-СХЕМА СИМУЛЯТОРЫ
+  let videoSimTimer = null;
+  let videoSimStep = 0;
+  const videoSimNotes = [
+    "1-қадам: Қолданушы жүйеге сұраныс немесе жаңа дерек жібереді (мысалы: тапсырыс немесе бронь).",
+    "2-қадам: Қолданба сервері мен API бизнес-ережелерді тексереді (рұқсат, валидация, төлем статусы).",
+    "3-қадам: Деректер базасы (SQL/NoSQL) мәліметті қауіпсіз сақтайды немесе қажетті жазбаны табады.",
+    "4-қадам: Талдау модулі нәтижені ақпаратқа айналдырып, экранға есеп немесе жауап ретінде шығарады."
+  ];
+
+  function renderVideoSimStep(idx) {
+    const nodes = document.querySelectorAll("#sim-nodes-track .sim-node");
+    nodes.forEach((n, i) => n.classList.toggle("active-node", i === idx));
+    const cap = document.getElementById("sim-caption");
+    if (cap) cap.textContent = videoSimNotes[idx] || "";
+    playPulseTone(440 + idx * 90, 0.11);
+  }
+
+  function toggleVideoSim() {
+    const btn = document.getElementById("video-sim-btn");
+    if (videoSimTimer) {
+      clearInterval(videoSimTimer);
+      videoSimTimer = null;
+      if (btn) btn.textContent = "▶ Бейне-анимацияны қосу";
+      return;
+    }
+    if (btn) btn.textContent = "⏸ Кідірту";
+    renderVideoSimStep(videoSimStep);
+    videoSimTimer = setInterval(() => {
+      videoSimStep = (videoSimStep + 1) % 4;
+      renderVideoSimStep(videoSimStep);
+    }, 1500);
+  }
+
+  function checkSecChoice(btnEl, isCorrect) {
+    const parent = btnEl.parentElement;
+    parent.querySelectorAll(".type-btn").forEach(b => b.classList.remove("correct", "wrong"));
+    btnEl.classList.add(isCorrect ? "correct" : "wrong");
+    const fb = document.getElementById("sec-feedback");
+    if (fb) {
+      fb.innerHTML = isCorrect
+        ? `<span style="color:var(--success); font-weight:700;">✓ Дұрыс!</span> Шифрлау құпиялылықты сақтайды, рөлдік рұқсат бөтен кіруден қорғайды, ал резервтік көшірме апат болғанда деректі қалпына келтіреді.`
+        : `<span style="color:var(--danger); font-weight:700;">Қате.</span> Мәліметтерді шифрлау, рөлдік рұқсат және резервтік көшірме (Backup) нұсқасын қарастырыңыз.`;
+    }
+  }
+
+  // Пәрмен палитрасы (Ctrl+K)
+  function openCmdModal() {
+    document.getElementById("cmd-modal").classList.add("open");
+  }
+  function closeCmdModal() {
+    document.getElementById("cmd-modal").classList.remove("open");
+  }
+  window.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      e.preventDefault();
+      const modal = document.getElementById("cmd-modal");
+      modal.classList.toggle("open");
+    }
+  });
+
+  // 5. АККАУНТ ЖӘНЕ ПРОГРЕС ЖҮЙЕСІ
+  const ROOT_STORAGE_KEY = "ais_multi_account_portal_v3";
+
+  const makeEmptyAccountState = (login = "guest", fullName = "", groupName = "") => ({
+    login,
+    studentName: fullName,
+    groupName,
+    videoNotes: "",
+    visitedModules: ["mod-1"],
+    trainerSolved: {},
+    practiceDone: {},
+    planDone: {},
+    quizResult: null
+  });
+
+  let rootStore = loadRootStore();
+  let state = rootStore.accounts[rootStore.activeAccount] || makeEmptyAccountState("guest");
+  let secondsElapsed = 0;
+
+  setInterval(() => {
+    secondsElapsed++;
+    const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, "0");
+    const secs = String(secondsElapsed % 60).padStart(2, "0");
+    const el = document.getElementById("session-timer");
+    if (el) el.textContent = `${mins}:${secs}`;
+  }, 1000);
+
+  function loadRootStore() {
+    try {
+      const raw = localStorage.getItem(ROOT_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.accounts && parsed.activeAccount) {
+          return parsed;
+        }
+      }
+    } catch (e) {}
+    return {
+      activeAccount: "guest",
+      accounts: {
+        guest: makeEmptyAccountState("guest", "", "")
+      }
+    };
+  }
+
+  function saveState() {
+    try {
+      rootStore.accounts[rootStore.activeAccount] = {
+        ...makeEmptyAccountState(rootStore.activeAccount),
+        ...state
+      };
+      localStorage.setItem(ROOT_STORAGE_KEY, JSON.stringify(rootStore));
+    } catch (e) {}
+    renderAccountHeader();
+    updateProgress();
+  }
+
+  function renderAccountHeader() {
+    const labelEl = document.getElementById("active-account-label");
+    const groupEl = document.getElementById("active-account-group");
+    const displayName = (state.studentName && state.studentName.trim())
+      ? `${state.studentName.trim()} (${rootStore.activeAccount})`
+      : rootStore.activeAccount;
+    if (labelEl) labelEl.textContent = displayName;
+    if (groupEl) groupEl.textContent = state.groupName ? `• ${state.groupName}` : "";
+
+    const listEl = document.getElementById("saved-accounts-list");
+    if (listEl) {
+      const keys = Object.keys(rootStore.accounts);
+      listEl.innerHTML = keys.map(k => {
+        const acc = rootStore.accounts[k];
+        const title = acc.studentName ? `${acc.studentName} (${k})` : k;
+        return `<button class="acc-chip" onclick="switchAccount('${k.replace(/'/g, "\\'")}')">🔑 ${title}</button>`;
+      }).join("");
+    }
+  }
+
+  function toggleAccountDrawer() {
+    const drawer = document.getElementById("account-drawer");
+    drawer.classList.toggle("open");
+    document.getElementById("acc-login-input").value = rootStore.activeAccount === "guest" ? "" : rootStore.activeAccount;
+    document.getElementById("acc-fullname-input").value = state.studentName || "";
+    document.getElementById("acc-group-input").value = state.groupName || "";
+    renderAccountHeader();
+  }
+
+  function saveAndSwitchAccount() {
+    const rawLogin = document.getElementById("acc-login-input").value.trim().toLowerCase().replace(/\s+/g, "_");
+    const fullName = document.getElementById("acc-fullname-input").value.trim();
+    const groupName = document.getElementById("acc-group-input").value.trim();
+
+    const targetLogin = rawLogin || rootStore.activeAccount || "guest";
+    if (!rootStore.accounts[targetLogin]) {
+      rootStore.accounts[targetLogin] = makeEmptyAccountState(targetLogin, fullName, groupName);
+    } else {
+      rootStore.accounts[targetLogin].studentName = fullName || rootStore.accounts[targetLogin].studentName;
+      rootStore.accounts[targetLogin].groupName = groupName || rootStore.accounts[targetLogin].groupName;
+    }
+    rootStore.activeAccount = targetLogin;
+    state = { ...makeEmptyAccountState(targetLogin), ...rootStore.accounts[targetLogin] };
+    saveState();
+    refreshAllViews();
+    alert(`«${targetLogin}» аккаунты сақталды және белсендірілді!`);
+  }
+
+  function switchAccount(loginKey) {
+    if (!rootStore.accounts[loginKey]) return;
+    rootStore.activeAccount = loginKey;
+    state = { ...makeEmptyAccountState(loginKey), ...rootStore.accounts[loginKey] };
+    saveState();
+    refreshAllViews();
+    document.getElementById("acc-login-input").value = loginKey === "guest" ? "" : loginKey;
+    document.getElementById("acc-fullname-input").value = state.studentName || "";
+    document.getElementById("acc-group-input").value = state.groupName || "";
+  }
+
+  function saveVideoNotes() {
+    const notesEl = document.getElementById("video-notes-input");
+    if (!notesEl) return;
+    state.videoNotes = notesEl.value;
+    saveState();
+    const st = document.getElementById("video-notes-status");
+    if (st) st.innerHTML = `<span style="color:var(--success); font-weight:600;">✓ Конспект «${rootStore.activeAccount}» аккаунтына сақталды</span>`;
+    playPulseTone(659.25, 0.12);
+  }
+
+  function renderVideoNotes() {
+    const notesEl = document.getElementById("video-notes-input");
+    if (notesEl) notesEl.value = state.videoNotes || "";
+  }
+
+  function refreshAllViews() {
+    renderVideoNotes();
+    renderTrainer();
+    renderMatchingGame();
+    renderPracticeStatuses();
+    renderStudyPlan();
+    renderQuiz();
+    renderAnalysis();
+    updateProgress();
+  }
+
+  function animateNumber(el, targetVal, suffix = "") {
+    if (!el) return;
+    const startVal = parseInt(el.textContent, 10) || 0;
+    const duration = 500;
+    const startTime = performance.now();
+    function step(now) {
+      const p = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const cur = Math.round(startVal + (targetVal - startVal) * eased);
+      el.textContent = cur + suffix;
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function updateProgress() {
+    const modScore = Math.min(state.visitedModules.length, 6) * 10;
+    const trainerScore = Math.min(Object.keys(state.trainerSolved).length, 4) * 4;
+    const practiceScore = Math.min(Object.keys(state.practiceDone).length, 3) * 3;
+    const quizScore = state.quizResult ? Math.round((state.quizResult.percent / 100) * 15) : 0;
+    const total = Math.min(100, modScore + trainerScore + practiceScore + quizScore);
+
+    document.getElementById("progress-fill").style.width = total + "%";
+    animateNumber(document.getElementById("progress-text"), total, "%");
+  }
+
+  const sdlcStepsData = [
+    {
+      title: "1-кезең: Талаптарды талдау",
+      desc: "Пайдаланушылар мен тапсырыс берушілердің қажеттіліктері жиналады, функционалдық және техникалық талаптар (ТЗ) нақтыланады.",
+      artifact: "Нәтиже: Техникалық тапсырма, пайдаланушы сценарийлері (Use Case)."
+    },
+    {
+      title: "2-кезең: Жобалау (Design)",
+      desc: "Жүйенің архитектурасы, деректер базасының схемасы (ERD), API байланыстары және қолданушы интерфейсі (UI/UX) жобаланады.",
+      artifact: "Нәтиже: ДБ схемасы, архитектура сызбасы, макеттер."
+    },
+    {
+      title: "3-кезең: Әзірлеу (Implementation)",
+      desc: "Бағдарламалау тілдері мен фреймворктер арқылы модульдер, деректерді өңдеу логикасы және интерфейс коды жазылады.",
+      artifact: "Нәтиже: Жұмыс істейтін бастапқы код және құрастырылған модульдер."
+    },
+    {
+      title: "4-кезең: Тестілеу (Testing)",
+      desc: "Қателерді (багтарды), өнімділікті, қауіпсіздікті және сценарийлердің дұрыс орындалуын тексеру жүргізіледі.",
+      artifact: "Нәтиже: Тест есебі, түзетілген қателер тізімі."
+    },
+    {
+      title: "5-кезең: Енгізу және қолдау (Deployment & Maintenance)",
+      desc: "Жүйе нақты ортаға (продакшн) шығарылады, қолданушылар оқытылады және үздіксіз жаңартылып қолдау көрсетіледі.",
+      artifact: "Нәтиже: Тұрақты жұмыс істейтін жүйе, мониторинг және жаңартулар."
+    }
+  ];
+
+  function selectSdlcStep(index, el) {
+    document.querySelectorAll("#sdlc-steps-row .flow-step").forEach(s => s.classList.remove("selected"));
+    if (el) el.classList.add("selected");
+    const item = sdlcStepsData[index];
+    const box = document.getElementById("sdlc-detail-box");
+    if (box && item) {
+      box.innerHTML = `<strong>${item.title}:</strong> ${item.desc}<br/><span class="muted">${item.artifact}</span>`;
+    }
+    playPulseTone(500 + index * 55, 0.1);
+  }
+
+  const glossaryData = [
+    { term: "Ақпараттық жүйе (АЖ)", desc: "Деректерді жинауға, сақтауға, өңдеуге және шешім қабылдауға арналған жүйе." },
+    { term: "TPS", desc: "Күнделікті операциялар мен транзакцияларды (касса, төлем, бронь) тіркейтін жүйе." },
+    { term: "MIS", desc: "Басшылыққа тұрақты кезеңдік есептер мен жиынтық көрсеткіштер беретін жүйе." },
+    { term: "DSS", desc: "Талдау, салыстыру және болжам арқылы шешім қабылдауға көмектесетін жүйе." },
+    { term: "ES (Сарапшылық жүйе)", desc: "Мамандардың білімі мен ережелер базасы негізінде кеңес беретін жүйе." },
+    { term: "SDLC", desc: "Ақпараттық жүйені құрудың өмірлік циклі (талап, жобалау, әзірлеу, тест, енгізу)." },
+    { term: "API", desc: "Бағдарламалық жүйелердің бір-бірімен деректер алмасу ережелері мен интерфейсі." },
+    { term: "CIA триадасы", desc: "Ақпараттық қауіпсіздіктің негізі: Құпиялылық, Тұтастық, Қолжетімділік." }
+  ];
+
+  function renderGlossary() {
+    const q = (document.getElementById("glossary-search").value || "").toLowerCase().trim();
+    const list = document.getElementById("glossary-list");
+    const filtered = glossaryData.filter(item =>
+      item.term.toLowerCase().includes(q) || item.desc.toLowerCase().includes(q)
+    );
+    list.innerHTML = filtered.length
+      ? filtered.map(item => `
+          <div class="glossary-item">
+            <div class="glossary-term">${item.term}</div>
+            <div class="muted">${item.desc}</div>
+          </div>
+        `).join("")
+      : `<p class="muted">Сәйкес термин табылмады.</p>`;
+  }
+
+  const trainerCases = [
+    {
+      id: "t1",
+      text: "1. Супермаркет кассасында штрих-код сканерленіп, сатып алу чегі тіркеледі.",
+      answer: "TPS",
+      hint: "TPS күнделікті операцияларды нақты уақытта тіркейді."
+    },
+    {
+      id: "t2",
+      text: "2. Аймақтық менеджер соңғы 6 айдағы сатылым трендтері мен баға өзгерісінің әсерін модельдеп, шешім қабылдайды.",
+      answer: "DSS",
+      hint: "DSS талдау мен сценарийлер арқылы шешім қабылдауға көмектеседі."
+    },
+    {
+      id: "t3",
+      text: "3. Директор әр дүйсенбі сайын бөлімдер бойынша дайын апталық есепті қарайды.",
+      answer: "MIS",
+      hint: "MIS тұрақты басқарушылық есептерді береді."
+    },
+    {
+      id: "t4",
+      text: "4. Жүйе симптомдар мен ережелер базасына сүйеніп, ақаудың ықтимал себебін анықтайды.",
+      answer: "ES",
+      hint: "ES сарапшылық білім мен ережелерге сүйенеді."
+    }
+  ];
+
+  function renderTrainer() {
+    const container = document.getElementById("trainer-container");
+    const types = ["TPS", "MIS", "DSS", "ES"];
+
+    container.innerHTML = trainerCases.map(c => {
+      const chosen = state.trainerSolved[c.id];
+      return `
+        <div class="trainer-case">
+          <div><strong>${c.text}</strong></div>
+          <div class="type-btns">
+            ${types.map(t => {
+              let cls = "type-btn";
+              if (chosen) {
+                if (t === c.answer) cls += " correct";
+                else if (t === chosen && chosen !== c.answer) cls += " wrong";
+              }
+              return `<button class="${cls}" onclick="checkTrainer('${c.id}', '${t}')">${t}</button>`;
+            }).join("")}
+          </div>
+          ${chosen ? `<div class="muted" style="margin-top:8px;">${c.hint}</div>` : ""}
+        </div>
+      `;
+    }).join("");
+  }
+
+  function checkTrainer(caseId, type) {
+    state.trainerSolved[caseId] = type;
+    playPulseTone(type === trainerCases.find(x => x.id === caseId).answer ? 784 : 293, 0.14);
+    saveState();
+    renderTrainer();
+  }
+
+  // Жаңа сәйкестендіру ойыны
+  const matchingPairs = [
+    { id: "m1", term: "API", correct: "Жүйелердің деректер алмасу интерфейсі", choices: ["Жүйелердің деректер алмасу интерфейсі", "Батарея қуаты", "Монитор экраны"] },
+    { id: "m2", term: "DSS", correct: "Талдау және болжам арқылы шешімге көмектесу", choices: ["Касса чегін басу", "Талдау және болжам арқылы шешімге көмектесу", "Пернетақта драйвері"] },
+    { id: "m3", term: "SDLC", correct: "Ақпараттық жүйені құрудың өмірлік циклі", choices: ["Ақпараттық жүйені құрудың өмірлік циклі", "Компьютер қорабы", "Браузер тарихы"] }
+  ];
+
+  function renderMatchingGame() {
+    const container = document.getElementById("matching-game-container");
+    if (!container) return;
+    container.innerHTML = matchingPairs.map(p => `
+      <div class="trainer-case">
+        <strong>${p.term}:</strong>
+        <select id="match-sel-${p.id}">
+          <option value="">-- Анықтамасын таңдаңыз --</option>
+          ${p.choices.map(ch => `<option value="${ch}">${ch}</option>`).join("")}
+        </select>
+      </div>
+    `).join("");
+  }
+
+  function checkMatchingGame() {
+    let score = 0;
+    matchingPairs.forEach(p => {
+      const val = document.getElementById("match-sel-" + p.id)?.value;
+      if (val === p.correct) score++;
+    });
+    const box = document.getElementById("matching-feedback");
+    if (box) {
+      box.style.display = "block";
+      box.innerHTML = `<strong>Нәтиже:</strong> ${score} / ${matchingPairs.length} сәйкестік дұрыс табылды.`;
+    }
+    playPulseTone(score === matchingPairs.length ? 880 : 440, 0.16);
+  }
+
+  const builderScenarios = {
+    clinic: {
+      type: "TPS",
+      dataHint: "пациент, дәрігер кестесі, қабылдау уақыты, төлем",
+      outHint: "расталған талон, чек, кестедегі бос/бос емес мәртебе"
+    },
+    retail: {
+      type: "DSS",
+      dataHint: "өткен сатылымдар, маусымдық индекс, жеткізу мерзімі, баға",
+      outHint: "сұраныс болжамы, сатып алу сценарийлері, тауар қалдығын оңтайландыру"
+    },
+    diag: {
+      type: "ES",
+      dataHint: "желілік симптомдар (ping, IP, порт), ақау белгілері, ережелер базасы",
+      outHint: "ақаудың ықтимал себебі және реттелген диагностикалық ұсыныс"
+    }
+  };
+
+  function resetBuilderFeedback() {
+    const box = document.getElementById("builder-result");
+    box.style.display = "none";
+    box.innerHTML = "";
+  }
+
+  function checkBuilder() {
+    const scKey = document.getElementById("scenario-select").value;
+    const chosenType = document.getElementById("builder-type").value;
+    const dataVal = document.getElementById("builder-data").value.trim();
+    const outVal = document.getElementById("builder-out").value.trim();
+    const sc = builderScenarios[scKey];
+    const box = document.getElementById("builder-result");
+
+    if (!chosenType) {
+      box.style.display = "block";
+      box.innerHTML = `<span style="color:var(--danger); font-weight:600;">Алдымен жүйе түрін таңдаңыз.</span>`;
+      return;
+    }
+
+    const typeOk = chosenType === sc.type;
+    const hasFields = dataVal.length >= 3 && outVal.length >= 3;
+    playPulseTone(typeOk ? 740 : 330, 0.14);
+
+    box.style.display = "block";
+    box.innerHTML = `
+      <div><strong>Талдау нәтижесі:</strong></div>
+      <p style="margin-top:6px;">
+        ${typeOk
+          ? `<span style="color:var(--success); font-weight:700;">✓ Жүйе түрі дұрыс (${sc.type}).</span>`
+          : `<span style="color:var(--warning); font-weight:700;">! Бұл сценарийге ең сәйкесі: ${sc.type}.</span>`
+        }
+        ${hasFields
+          ? ` <span style="color:var(--success); font-weight:600;">✓ Кіріс деректері мен күтілетін нәтиже көрсетілген.</span>`
+          : ` <span class="muted">Кіріс деректер мен күтілетін нәтижені толығырақ жазыңыз.</span>`
+        }
+      </p>
+      <div class="muted">
+        <strong>Үлгі бағдар:</strong> Деректер — ${sc.dataHint}; Нәтиже — ${sc.outHint}.
+      </div>
+    `;
+  }
+
+  function markPracticeDone(num) {
+    state.practiceDone["p" + num] = true;
+    playPulseTone(698.46, 0.13);
+    saveState();
+    renderPracticeStatuses();
+  }
+
+  function renderPracticeStatuses() {
+    [1, 2, 3].forEach(num => {
+      const el = document.getElementById("p-status-" + num);
+      if (!el) return;
+      el.innerHTML = state.practiceDone["p" + num]
+        ? `<span style="color:var(--success); font-weight:600;">✓ Тапсырма орындалды деп белгіленді</span>`
+        : "";
+    });
+  }
+
+  // ТЗ генераторы
+  function generateTzSpec() {
+    const pName = document.getElementById("tz-project-name").value.trim() || "Ақпараттық жүйе жобасы";
+    const sysType = document.getElementById("tz-sys-type").value;
+    const dbSec = document.getElementById("tz-db-sec").value.trim() || "Реляциялық ДБ, рөлдік рұқсат, резервтік көшірме";
+    const box = document.getElementById("tz-output-box");
+    if (!box) return;
+    box.style.display = "block";
+    box.innerHTML = `
+      <strong>Дайын техникалық паспорт (ТЗ):</strong><br/>
+      • Жүйе атауы: <strong>${pName}</strong><br/>
+      • Архитектуралық бағыты: <strong>${sysType}</strong><br/>
+      • Деректер және қауіпсіздік: <strong>${dbSec}</strong><br/>
+      • Кезеңдері (SDLC): Талаптарды талдау → Жобалау (ERD, API) → Әзірлеу → Тестілеу → Енгізу және қолдау.
+    `;
+    playPulseTone(784, 0.14);
+  }
+
+  // Оқу жоспары трекері
+  const studyPlanItems = [
+    { id: "sp1", label: "2-модульдегі 4 теориялық тақырып пен @almatypolytechedukz бейнесін қарау" },
+    { id: "sp2", label: "3-модульдегі TPS/MIS/DSS/ES тренажері мен сәйкестендіру ойынын өту" },
+    { id: "sp3", label: "3 практикалық кейсті талдап, ТЗ генераторымен жоба паспортын құрау" },
+    { id: "sp4", label: "4-модульдегі 10 сұрақтық тесттен өтіп, 6-модульде сертификат алу" }
+  ];
+
+  function toggleStudyPlan(id) {
+    state.planDone[id] = !state.planDone[id];
+    saveState();
+    renderStudyPlan();
+  }
+
+  function renderStudyPlan() {
+    const list = document.getElementById("study-plan-list");
+    const sum = document.getElementById("study-plan-summary");
+    if (!list) return;
+    let doneCnt = 0;
+    list.innerHTML = studyPlanItems.map(item => {
+      const checked = !!state.planDone[item.id];
+      if (checked) doneCnt++;
+      return `
+        <label class="plan-row" style="cursor:pointer;">
+          <span style="display:flex; align-items:center; gap:10px;">
+            <input type="checkbox" ${checked ? "checked" : ""} onchange="toggleStudyPlan('${item.id}')" />
+            <span style="${checked ? "text-decoration:line-through; color:var(--muted);" : ""}">${item.label}</span>
+          </span>
+          <span class="muted">${checked ? "✓ Дайын" : "Күтілуде"}</span>
+        </label>
+      `;
+    }).join("");
+    if (sum) {
+      const pct = Math.round((doneCnt / studyPlanItems.length) * 100);
+      sum.innerHTML = `Жоспардың орындалуы: <strong>${doneCnt} / ${studyPlanItems.length} (${pct}%)</strong>`;
+    }
+  }
+
+  const quizData = [
+    {
+      q: "1. Ақпараттық жүйенің құрамдас бөліктеріне не жатады?",
+      options: [
+        "Тек процессор мен монитор",
+        "Деректер, БЖ, аппараттық құралдар, адамдар және процестер",
+        "Тек интернет браузер мен пошта",
+        "Тек деректер базасының кестелері"
+      ],
+      correct: 1,
+      topic: "АЖ компоненттері",
+      explain: "АЖ техникалық құралдардан бөлек деректерді, БЖ-ны, адамдарды және процестерді қамтиды."
+    },
+    {
+      q: "2. Күнделікті операцияларды (касса, банк транзакциясы) тіркейтін жүйе қалай аталады?",
+      options: ["DSS", "TPS", "ES", "CAD"],
+      correct: 1,
+      topic: "АЖ түрлері",
+      explain: "TPS күнделікті транзакцияларды тіркейді."
+    },
+    {
+      q: "3. Шикі деректер мен ақпараттың басты айырмашылығы неде?",
+      options: [
+        "Ақпарат әрқашан сан түрінде болады",
+        "Деректерде мағына/контекст болмайды, ал ақпарат — өңделген, мағыналы нәтиже",
+        "Айырмашылығы жоқ",
+        "Деректер тек қағазда сақталады"
+      ],
+      correct: 1,
+      topic: "Ақпараттың өмірлік циклі",
+      explain: "Ақпарат — өңделген және контекстке ие деректер."
+    },
+    {
+      q: "4. Басшылыққа күрделі талдау мен болжам арқылы шешім қабылдауға көмектесетін жүйе:",
+      options: ["DSS", "TPS", "Тек мәтіндік редактор", "Антивирус"],
+      correct: 0,
+      topic: "АЖ түрлері",
+      explain: "DSS шешім қабылдауды аналитикалық түрде қолдайды."
+    },
+    {
+      q: "5. SDLC жобалау циклінің ең алғашқы қадамы қандай?",
+      options: [
+        "Жүйені сүйемелдеу",
+        "Талаптарды талдау",
+        "Пайдаланушыларды оқыту",
+        "Серверді өшіру"
+      ],
+      correct: 1,
+      topic: "SDLC кезеңдері",
+      explain: "Алдымен талаптар жиналып, талданады."
+    },
+    {
+      q: "6. Деректерді өңдеуден кейін оны сақтау не үшін қажет?",
+      options: [
+        "Жадты толтыру үшін",
+        "Кейін қайта пайдалану, талдау және есептілік үшін",
+        "Жүйені баяулату үшін",
+        "Тек пароль сақтау үшін"
+      ],
+      correct: 1,
+      topic: "Ақпараттың өмірлік циклі",
+      explain: "Сақтау деректерді талдау мен қалпына келтіруге мүмкіндік береді."
+    },
+    {
+      q: "7. Сарапшылық жүйе (ES) неге негізделеді?",
+      options: [
+        "Кездейсоқ сан генераторына",
+        "Белгілі бір сала мамандарының білімі мен ережелер базасына",
+        "Тек сурет салуға",
+        "Компьютерді қайта жүктеуге"
+      ],
+      correct: 1,
+      topic: "АЖ түрлері",
+      explain: "ES сарапшылық ережелер мен білім базасына негізделеді."
+    },
+    {
+      q: "8. Жүйені жасап болған соң қателер мен жұмысты тексеру кезеңі:",
+      options: ["Тестілеу", "Мұрағаттау", "Жою", "Бұғаттау"],
+      correct: 0,
+      topic: "SDLC кезеңдері",
+      explain: "Тестілеу кезеңінде жүйенің дұрыстығы мен қателер тексеріледі."
+    },
+    {
+      q: "9. Ақпараттық жүйеде «Адамдар» компонентіне кімдер кіреді?",
+      options: [
+        "Тек бағдарламашылар",
+        "Соңғы қолданушылар, операторлар, талдаушылар және әкімшілер",
+        "Тек жүйелік блок",
+        "Тек кабельдер"
+      ],
+      correct: 1,
+      topic: "АЖ компоненттері",
+      explain: "Жүйені пайдаланатын және басқаратын барлық рөлдер кіреді."
+    },
+    {
+      q: "10. Төмендегілердің қайсысы сапалы ақпараттың қасиеті емес?",
+      options: ["Дәлдік", "Өзектілік", "Толықтық", "Бұрмаланғандық"],
+      correct: 3,
+      topic: "Ақпараттың өмірлік циклі",
+      explain: "Ақпарат дәл, өзекті және толық болуы тиіс."
+    }
+  ];
+
+  function openModule(id) {
+    document.querySelectorAll(".module").forEach(m => m.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    document.querySelectorAll(".nav-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.target === id);
+    });
+    if (!state.visitedModules.includes(id)) {
+      state.visitedModules.push(id);
+    }
+    if (id === "mod-6") {
+      renderAnalysis();
+      renderStudyPlan();
+    }
+    playPulseTone(523.25, 0.1);
+    saveState();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => openModule(btn.dataset.target));
+  });
+
+  function showTopic(num, tabEl) {
+    [1, 2, 3, 4].forEach(i => {
+      document.getElementById("topic-" + i).style.display = (i === num) ? "block" : "none";
+    });
+    if (tabEl) {
+      Array.from(tabEl.parentElement.children).forEach(c => c.classList.remove("active"));
+      tabEl.classList.add("active");
+    }
+    playPulseTone(480 + num * 45, 0.1);
+  }
+
+  function toggleBox(id) {
+    const el = document.getElementById(id);
+    el.style.display = (el.style.display === "block") ? "none" : "block";
+  }
+
+  function renderQuiz() {
+    const container = document.getElementById("quiz-container");
+    const savedAnswers = state.quizResult ? state.quizResult.answers : {};
+
+    container.innerHTML = quizData.map((item, idx) => {
+      const chosen = savedAnswers[idx];
+      return `
+        <div class="question-card" id="q-card-${idx}">
+          <div class="q-title">${item.q}</div>
+          ${item.options.map((opt, oIdx) => {
+            const checked = (chosen === oIdx) ? "checked" : "";
+            return `
+              <label class="option-label">
+                <input type="radio" name="q${idx}" value="${oIdx}" ${checked} />
+                <span>${opt}</span>
+              </label>
+            `;
+          }).join("")}
+          <div id="q-fb-${idx}" class="q-feedback"></div>
+        </div>
+      `;
+    }).join("");
+
+    if (state.quizResult) {
+      showQuizFeedback();
+    }
+  }
+
+  function showQuizFeedback() {
+    if (!state.quizResult) return;
+    const { answers } = state.quizResult;
+    quizData.forEach((item, idx) => {
+      const fb = document.getElementById("q-fb-" + idx);
+      const userAns = answers[idx];
+      fb.style.display = "block";
+      if (userAns === item.correct) {
+        fb.style.background = "rgba(34, 197, 94, 0.16)";
+        fb.style.border = "1px solid rgba(34, 197, 94, 0.4)";
+        fb.style.color = "#bbf7d0";
+        fb.innerHTML = `<strong>Дұрыс!</strong> ${item.explain}`;
+      } else {
+        fb.style.background = "rgba(239, 68, 68, 0.16)";
+        fb.style.border = "1px solid rgba(239, 68, 68, 0.4)";
+        fb.style.color = "#fecaca";
+        fb.innerHTML = `<strong>Қате.</strong> Дұрыс жауап: <em>${item.options[item.correct]}</em>. ${item.explain}`;
+      }
+    });
+  }
+
+  function gradeQuiz() {
+    const answers = {};
+    let correctCount = 0;
+    const mistakes = [];
+
+    for (let i = 0; i < quizData.length; i++) {
+      const selected = document.querySelector(`input[name="q${i}"]:checked`);
+      if (!selected) {
+        alert(`${i + 1}-сұраққа жауап беріңіз!`);
+        return;
+      }
+      const val = Number(selected.value);
+      answers[i] = val;
+      if (val === quizData[i].correct) {
+        correctCount++;
+      } else {
+        mistakes.push({
+          num: i + 1,
+          question: quizData[i].q,
+          topic: quizData[i].topic,
+          userAnswer: quizData[i].options[val],
+          correctAnswer: quizData[i].options[quizData[i].correct],
+          explain: quizData[i].explain
+        });
+      }
+    }
+
+    const total = quizData.length;
+    const percent = Math.round((correctCount / total) * 100);
+
+    state.quizResult = {
+      correctCount,
+      total,
+      percent,
+      answers,
+      mistakes,
+      date: new Date().toLocaleDateString("kk-KZ")
+    };
+
+    playPulseTone(880, 0.2);
+    saveState();
+    showQuizFeedback();
+    renderAnalysis();
+    alert(`Тест аяқталды! Нәтижеңіз: ${correctCount}/${total} (${percent}%). Талдау 6-модульдегі аккаунтыңызда сақталды.`);
+  }
+
+  function resetQuiz() {
+    state.quizResult = null;
+    saveState();
+    renderQuiz();
+    renderAnalysis();
+  }
+
+  const checkPrompts = [
+    "Тексеру сұрағы: Кассада чек шығару және банкоматтан ақша алу қай АЖ түріне (TPS, MIS, DSS, ES) жатады? Неге?",
+    "Тексеру сұрағы: SDLC-дің «Тестілеу» кезеңі не үшін қажет және ол қай кезеңнен кейін жүреді?",
+    "Тексеру сұрағы: Шикі деректер мен дайын ақпараттың айырмашылығын бір өмірлік мысалмен түсіндіріп көр."
+  ];
+  let checkPromptIdx = 0;
+
+  function generateBotReply(rawText) {
+    const t = rawText.toLowerCase();
+
+    if (t.includes("тексеру") || t.includes("сұрақ қой")) {
+      const q = checkPrompts[checkPromptIdx % checkPrompts.length];
+      checkPromptIdx++;
+      return q;
+    }
+    if (t.includes("компонент") || t.includes("құрамдас") || t.includes("5")) {
+      return "Ақпараттық жүйенің 5 негізгі компоненті бар:\n1) Деректер (кестелер, жазбалар)\n2) Бағдарламалық жасақтама (қосымша, ДБ)\n3) Аппараттық құралдар (сервер, компьютер)\n4) Адамдар (қолданушы, талдаушы, әкімші)\n5) Процестер (қабылдау, тексеру, есеп шығару ережелері).\nМысалы: онлайн-дүкенде себет пен төлем логикасы — БЖ, тауар/тапсырыс — деректер, сатып алушы — адам, төлемді растау — процесс.";
+    }
+    if (t.includes("дерек") || t.includes("ақпарат")) {
+      return "Деректер — өңделмеген фактілер мен мәндер (мысалы: «120», «15.11.2026»).\nАқпарат — контекст беріліп, өңделген мағыналы нәтиже (мысалы: «15.11.2026 күні 120 тапсырыс сәтті өңделді»).\nҚысқа ереже: ақпарат — шешім қабылдауға жарамды мағыналы мәлімет.";
+    }
+    if (t.includes("tps") || t.includes("dss") || t.includes("mis") || t.includes("es") || t.includes("ажырат")) {
+      return "АЖ түрлерін ажырату оңай:\n• TPS — күнделікті операцияларды тіркейді (касса, чек, бронь).\n• MIS — тұрақты кезеңдік есептер береді (апталық/айлық есеп).\n• DSS — талдау, салыстыру және болжам жасап, шешімге көмектеседі.\n• ES — сарапшы ережелері мен білім базасы арқылы кеңес/диагноз береді.";
+    }
+    if (t.includes("sdlc") || t.includes("кезең") || t.includes("жобалау")) {
+      return "SDLC — АЖ-ны құрудың өмірлік циклі:\n1. Талаптарды талдау\n2. Жобалау (архитектура, ДБ, интерфейс)\n3. Әзірлеу (код жазу)\n4. Тестілеу (қателерді табу және түзету)\n5. Енгізу және қолдау (пайдалануға беру және дамыту).";
+    }
+    if (t.includes("api") || t.includes("қауіпсіздік") || t.includes("cia") || t.includes("база")) {
+      return "• Деректер базасы — жүйелік мәліметтерді құрылымдап сақтайды.\n• API — жүйелердің өзара байланысып дерек алмасуын қамтамасыз етеді.\n• CIA қауіпсіздігі — Құпиялылық (рұқсатсыз оқудан қорғау), Тұтастық (бұрмаламау) және Қолжетімділік (қажет кезде қолжетімді болу).";
+    }
+    return "Қызықты сұрақ! «Ақпараттық жүйелер негіздері» бойынша:\n• 2-модульде 4 теориялық тақырып, @almatypolytechedukz бейнесі, анимациялық бейне-схема, дауыстық түсіндірме, SDLC симуляторы және глоссарий бар;\n• 3-модульде TPS/MIS/DSS/ES тренажері, сәйкестендіру ойыны, архитектура конструкторы және қауіпсіздік ойыны бар;\n• 4-модульде 10 сұрақтық тест өте аласыз.\nНақты қай термин немесе мысал бойынша көмектесейін?";
+  }
+
+  function appendChat(sender, text) {
+    const box = document.getElementById("chat-box");
+    const div = document.createElement("div");
+    div.className = "msg " + sender;
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function sendMessage() {
+    const input = document.getElementById("chat-input");
+    const text = input.value.trim();
+    if (!text) return;
+    appendChat("user", text);
+    input.value = "";
+    setTimeout(() => {
+      appendChat("bot", generateBotReply(text));
+    }, 220);
+  }
+
+  function sendPreset(text) {
+    appendChat("user", text);
+    setTimeout(() => {
+      appendChat("bot", generateBotReply(text));
+    }, 220);
+  }
+
+  function saveStudentName() {
+    state.studentName = document.getElementById("student-name").value;
+    saveState();
+    renderAnalysis();
+  }
+
+  function clearSavedProgress() {
+    if (!confirm("Ағымдағы аккаунттағы прогресс пен тест нәтижесін өшіргіңіз келе ме?")) return;
+    state = makeEmptyAccountState(rootStore.activeAccount, state.studentName, state.groupName);
+    saveState();
+    refreshAllViews();
+  }
+
+  function renderAnalysis() {
+    const container = document.getElementById("analysis-content");
+    const nameInput = document.getElementById("student-name");
+    if (nameInput && nameInput.value !== state.studentName) {
+      nameInput.value = state.studentName || "";
+    }
+
+    const trainerCount = Object.keys(state.trainerSolved).length;
+    const practiceCount = Object.keys(state.practiceDone).length;
+
+    if (!state.quizResult) {
+      container.innerHTML = `
+        <div class="info-box">
+          <strong>Тест нәтижесі әлі тіркелмеген.</strong> Толық талдау мен сертификат алу үшін 4-модульдегі 10 сұрақтық тесті тапсырыңыз.
+        </div>
+        <p class="muted">Ағымдағы белсенділік (${rootStore.activeAccount}): Тренажер — ${trainerCount}/4 кейс, Практика — ${practiceCount}/3 тапсырма.</p>
+        <button class="btn" onclick="openModule('mod-4')">4-модульге өту (Тест)</button>
+      `;
+      return;
+    }
+
+    const { correctCount, total, percent, mistakes, date } = state.quizResult;
+    let levelText = "Бастапқы деңгей";
+    if (percent >= 85) levelText = "Үздік меңгеру (Жоғары деңгей)";
+    else if (percent >= 65) levelText = "Жақсы нәтиже (Ортадан жоғары)";
+    else if (percent >= 50) levelText = "Қанағаттанарлық (Қосымша қайталау қажет)";
+
+    const weakTopics = [...new Set(mistakes.map(m => m.topic))];
+
+    const recommendations = weakTopics.length
+      ? weakTopics.map(topic => {
+          if (topic === "АЖ компоненттері") return "2-модульдегі 1-тақырыпты қайталап, жүйенің 5 компонентін нақты мысалға бөліп жазыңыз.";
+          if (topic === "АЖ түрлері") return "3-модульдегі TPS, MIS, DSS, ES тренажерін қайта орындап, әр жүйенің негізгі мақсатын салыстырыңыз.";
+          if (topic === "Ақпараттың өмірлік циклі") return "Шикі деректер мен ақпараттың айырмашылығын және сапа қасиеттерін (дәлдік, өзектілік, толықтық) пысықтаңыз.";
+          if (topic === "SDLC кезеңдері") return "SDLC кезеңдерінің реттілігін (талаптар → жобалау → әзірлеу → тестілеу → енгізу/қолдау) қайталаңыз.";
+          return `${topic} тақырыбын теориялық бөлімнен қайта қараңыз.`;
+        })
+      : ["Барлық сұрақтарға дұрыс жауап бердіңіз! Енді 3-модульдегі практикалық кейстерді толық жазып, ЖИ көмекшісімен күрделі жағдайларды талдаңыз."];
+
+    const studentDisplayName = (state.studentName || "").trim() || "Білім алушы";
+
+    container.innerHTML = `
+      <div class="score-banner">
+        <div>
+          <div class="muted">Тест нәтижесі • Аккаунт: <strong>${rootStore.activeAccount}</strong></div>
+          <div class="score-big" id="analysis-percent-anim">${percent}%</div>
+          <div><strong>${correctCount} / ${total}</strong> дұрыс жауап • <em>${levelText}</em></div>
+        </div>
+        <div class="muted">
+          <div>Тренажер: <strong>${trainerCount} / 4</strong> кейс</div>
+          <div>Практикалық кейстер: <strong>${practiceCount} / 3</strong> белгіленді</div>
+          <div>Күні: <strong>${date}</strong></div>
+        </div>
+      </div>
+
+      <h3>Қателерді талдау</h3>
+      ${mistakes.length === 0
+        ? `<p style="color:var(--success); font-weight:600;">✓ Қате жіберілген жоқ! Тамаша нәтиже.</p>`
+        : mistakes.map(m => `
+            <div class="question-card">
+              <div><strong>${m.question}</strong> <span class="muted">[${m.topic}]</span></div>
+              <div style="color:var(--danger); margin-top:4px;">Сіздің жауабыңыз: ${m.userAnswer}</div>
+              <div style="color:var(--success);">Дұрыс жауап: ${m.correctAnswer}</div>
+              <div class="muted" style="margin-top:4px;">${m.explain}</div>
+            </div>
+          `).join("")
+      }
+
+      <h3>Жеке ұсыныстар</h3>
+      <ul class="rec-list">
+        ${recommendations.map(r => `<li>${r}</li>`).join("")}
+      </ul>
+
+      <div class="certificate-box">
+        <div class="cert-title">СЕРТИФИКАТ</div>
+        <div class="muted">Осы сертификат беріледі:</div>
+        <div class="cert-name">${studentDisplayName}</div>
+        <p>
+          «<strong>Ақпараттық жүйелер негіздері</strong>» интеллектуалды электронды оқу құралы
+          бойынша модулдік тапсырмалар мен қорытынды тестілеуден <strong>${percent}%</strong> нәтиже көрсеткені үшін.
+        </p>
+        <div class="muted">Күні: ${date} • Аккаунт: ${rootStore.activeAccount} ${state.groupName ? "• Топ: " + state.groupName : ""}</div>
+      </div>
+
+      <div class="no-print" style="margin-top:16px;">
+        <button class="btn" onclick="window.print()">Сертификатты басып шығару / PDF сақтау</button>
+      </div>
+    `;
+    animateNumber(document.getElementById("analysis-percent-anim"), percent, "%");
+  }
+
+  function showExtraTab(mode, tabEl) {
+    if (tabEl) {
+      Array.from(tabEl.parentElement.children).forEach(c => c.classList.remove("active"));
+      tabEl.classList.add("active");
+    }
+    const box = document.getElementById("extra-content-box");
+    if (!box) return;
+
+    if (mode === "python") {
+      box.innerHTML = `
+        <strong>Python бағдарламалау тіліне бейімдеу жоспары:</strong><br/>
+        • 2-модуль: Айнымалылар мен деректер типтері, шартты операторлар (<code>if/elif/else</code>), циклдер (<code>for/while</code>), функциялар мен тізімдер.<br/>
+        • 3-модуль: Код шығысын болжау тренажері + 3 практикалық есеп (мысалы: калькулятор, тізім сүзгісі, жүйелік логика).<br/>
+        • 4-модуль: Python синтаксисі мен логикасына арналған 10 тест сұрағы.
+      `;
+    } else if (mode === "sql") {
+      box.innerHTML = `
+        <strong>SQL және деректер базасын басқаруға бейімдеу жоспары:</strong><br/>
+        • 2-модуль: Кестелер, кілттер (<code>PRIMARY KEY</code>, <code>FOREIGN KEY</code>), <code>SELECT / WHERE / JOIN</code> және агрегаттық функциялар.<br/>
+        • 3-модуль: Сұраныс түрін анықтау тренажері + 3 практикалық кейс (онлайн-дүкен, кітапхана, емхана базасы).<br/>
+        • 4-модуль: SQL сұраныстары мен қалыптандыру бойынша 10 тест сұрағы.
+      `;
+    } else {
+      box.innerHTML = `
+        <strong>GitHub Pages және Replit арқылы жариялау (қадам-қадам):</strong><br/>
+        1. Кодты <code>index.html</code> етіп сақтаңыз.<br/>
+        2. <strong>GitHub Pages:</strong> Жаңа репозиторий ашыңыз → <code>index.html</code> файлын жүктеңіз → <em>Settings → Pages → Branch: main → Save</em> → дайын сілтеме алыңыз.<br/>
+        3. <strong>Replit:</strong> Жаңа <em>HTML, CSS, JS</em> жобасын ашыңыз → кодты <code>index.html</code>-ге қойып → <em>Run</em> басыңыз.
+      `;
+    }
+  }
+
+  // Алғашқы рендер
+  renderAccountHeader();
+  selectSdlcStep(0, document.querySelector("#sdlc-steps-row .flow-step"));
+  renderGlossary();
+  renderVideoNotes();
+  renderTrainer();
+  renderMatchingGame();
+  renderPracticeStatuses();
+  renderStudyPlan();
+  renderQuiz();
+  renderAnalysis();
+  showExtraTab("python", null);
+  updateProgress();
+</script>
+</body>
+</html>
